@@ -1,6 +1,12 @@
+require('dotenv').config();
+
+const express = require('express');
 const pool = require('./database/db');
 
-async function iniciar() {
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.get('/', async (req, res) => {
   try {
     const db = await pool.query(`
       SELECT
@@ -9,21 +15,19 @@ async function iniciar() {
         now() AS data_hora
     `);
 
-    const tabelas = await pool.query(`
-      SELECT table_schema, table_name
-      FROM information_schema.tables
-      WHERE table_schema IN ('core','router','whatsapp','cockpit','comprova','integration','audit')
-      ORDER BY table_schema, table_name
-    `);
-
-    console.log('Compliance IA Platform iniciada com sucesso');
-    console.table(db.rows);
-    console.table(tabelas.rows);
+    res.json({
+      status: 'OK',
+      app: 'Compliance IA Platform',
+      banco: db.rows[0]
+    });
   } catch (erro) {
-    console.error('Erro ao iniciar plataforma:', erro.message);
-  } finally {
-    await pool.end();
+    res.status(500).json({
+      status: 'ERRO',
+      mensagem: erro.message
+    });
   }
-}
+});
 
-iniciar();
+app.listen(PORT, () => {
+  console.log(`Compliance IA Platform online na porta ${PORT}`);
+});
