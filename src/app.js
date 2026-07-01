@@ -2,6 +2,7 @@ require('dotenv').config();
 
 const express = require('express');
 const pool = require('./database/db');
+const { listarComprovantes } = require('./integrations/google/drive/listar-comprovantes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,24 @@ app.get('/', async (req, res) => {
       status: 'OK',
       app: 'Compliance IA Platform',
       banco: db.rows[0]
+    });
+  } catch (erro) {
+    res.status(500).json({
+      status: 'ERRO',
+      mensagem: erro.message
+    });
+  }
+});
+
+app.get('/google/teste', async (req, res) => {
+  try {
+    const arquivos = await listarComprovantes(5);
+
+    res.json({
+      status: 'OK',
+      origem: 'Google Drive',
+      total: arquivos.length,
+      arquivos
     });
   } catch (erro) {
     res.status(500).json({
