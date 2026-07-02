@@ -6,13 +6,12 @@ async function registrarProcessamento({ telefone, mensagem }) {
 
   const decisao = identificarIntencao(mensagem);
 
-  const resultado = await pool.query(
+  await pool.query(
     `
     INSERT INTO router.processamentos
       (telefone, mensagem, intencao, modulo_destino, confianca, status, tempo_processamento_ms)
     VALUES
       ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING id, data_hora, telefone, mensagem, intencao, modulo_destino, confianca, status
     `,
     [
       telefone,
@@ -25,7 +24,17 @@ async function registrarProcessamento({ telefone, mensagem }) {
     ]
   );
 
-  return resultado.rows[0];
+  return {
+    telefone,
+    mensagem,
+    intencao: decisao.intencao,
+    modulo_destino: decisao.modulo,
+    confianca: decisao.confianca,
+    entidade: decisao.entidade,
+    bloqueado: decisao.bloqueado,
+    motivo: decisao.motivo,
+    parametros: decisao.parametros || {}
+  };
 }
 
 module.exports = { registrarProcessamento };

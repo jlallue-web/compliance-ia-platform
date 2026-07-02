@@ -28,7 +28,15 @@ async function obterContexto(telefone) {
   return resultado.rows[0] || null;
 }
 
+async function limparContexto(telefone) {
+  await pool.query(`
+    DELETE FROM whatsapp.sessoes
+    WHERE telefone = $1
+  `, [telefone]);
+}
+
 module.exports = {
   salvarContexto,
-  obterContexto
+  obterContexto,
+  limparContexto
 };

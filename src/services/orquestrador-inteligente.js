@@ -1,20 +1,18 @@
 const { registrarProcessamento } = require('../router/registrar-processamento');
+const { salvarContexto, obterContexto, limparContexto } = require('../whatsapp/contexto');
 const { executarComprova } = require('../comprova/executar-comprova');
 const { formatarRespostaComprova } = require('../comprova/formatar-resposta');
-const { salvarContexto, obterContexto } = require('../whatsapp/contexto');
 const Envelope = require('../core/envelope-resposta');
+const { gerarRespostaRouter } = require('../router/resposta-router');
 
 async function processarMensagemInteligente({ telefone, mensagem }) {
-
   const contextoAtual = await obterContexto(telefone);
 
-  // Continua uma conversa já iniciada
   if (
     contextoAtual &&
     contextoAtual.modulo_atual === 'comprova' &&
     contextoAtual.estado === 'AGUARDANDO_ESCOLHA_COMPROVANTE'
   ) {
-
     const numero = parseInt(mensagem.trim(), 10);
     const documentos = contextoAtual.contexto.documentos || [];
     const escolhido = documentos[numero - 1];
@@ -27,6 +25,8 @@ async function processarMensagemInteligente({ telefone, mensagem }) {
       };
     }
 
+    await limparContexto(telefone);
+
     return {
       respostaUsuario: Envelope.pdf(
         'Perfeito. Segue o comprovante solicitado.',
@@ -36,20 +36,27 @@ async function processarMensagemInteligente({ telefone, mensagem }) {
     };
   }
 
-  // Nova mensagem
-  const processamento = await registrarProcessamento({
-    telefone,
-    mensagem
+  const processamento = await registrarProcessamento({ telefone, mensagem });
+
+  const respostaRouter = gerarRespostaRouter({
+    intencao: processamento.intencao,
+    modulo: processamento.modulo_destino,
+    bloqueado: processamento.bloqueado,
+    motivo: processamento.motivo
   });
 
+  if (respostaRouter) {
+    return {
+      processamento,
+      resultadoModulo: null,
+      respostaUsuario: respostaRouter
+    };
+  }
+
   let resultadoModulo = null;
-  let respostaUsuario = Envelope.texto(
-    'Não consegui identificar a solicitação.'
-  );
+  let respostaUsuario = Envelope.texto('Não consegui identificar a solicitação.');
 
-  // COMPROVA AI
   if (processamento.modulo_destino === 'comprova') {
-
     resultadoModulo = await executarComprova(mensagem);
 
     await salvarContexto({
@@ -67,13 +74,10 @@ async function processarMensagemInteligente({ telefone, mensagem }) {
     );
   }
 
-  // COCKPIT
   if (processamento.modulo_destino === 'cockpit') {
-
     respostaUsuario = Envelope.texto(
       'Consulta Cockpit identificada. Integração com Cockpit será ligada na próxima etapa.'
     );
-
   }
 
   return {
@@ -81,7 +85,6 @@ async function processarMensagemInteligente({ telefone, mensagem }) {
     resultadoModulo,
     respostaUsuario
   };
-
 }
 
 module.exports = {
