@@ -1,26 +1,25 @@
+const { classificar } = require('./classificador-intencao');
+const { extrairEntidade } = require('./extrator-entidades');
+
 function identificarIntencao(mensagem) {
-  const texto = mensagem.toLowerCase();
+  const classificacao = classificar(mensagem);
 
-  if (texto.includes('aporte') || texto.includes('pagamento') || texto.includes('saldo')) {
-    return {
-      intencao: 'CONSULTA_COCKPIT',
-      modulo: 'cockpit',
-      confianca: 0.85
-    };
-  }
+  let entidade = {
+    entidade: null,
+    bloqueado: false,
+    motivo: null
+  };
 
-  if (texto.includes('comprovante') || texto.includes('pix') || texto.includes('boleto')) {
-    return {
-      intencao: 'BUSCAR_COMPROVANTE',
-      modulo: 'comprova',
-      confianca: 0.85
-    };
+  if (classificacao.modulo === 'comprova') {
+    entidade = extrairEntidade(mensagem);
   }
 
   return {
-    intencao: 'NAO_IDENTIFICADA',
-    modulo: 'router',
-    confianca: 0.30
+    ...classificacao,
+    entidade: entidade.entidade,
+    bloqueado: entidade.bloqueado,
+    motivo: entidade.motivo,
+    parametros: {}
   };
 }
 

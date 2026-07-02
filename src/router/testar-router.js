@@ -5,6 +5,8 @@ const mensagens = [
   'Me envie o comprovante da CPFL',
   'Tem pagamento para hoje?',
   'Quero o boleto da Trinken',
+  'Quero comprovante da carne',
+  'Quero comprovante do chopp',
   'Bom dia'
 ];
 
